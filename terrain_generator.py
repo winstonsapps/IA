@@ -3,45 +3,114 @@ import random
 import math
 
 class Terrain_Generator:
-    def __init__(self, seed):
+    def __init__(self, seed, world_gen_options: dict):
         self._seed = seed
-        self._permutations = np.zeros(255)
+        self._permutations = np.array(
+            [
+                151, 160, 137,  91,  90,  15, 131,  13, 201,  95,  96,  53, 194, 233,   7, 225,
+                140,  36, 103,  30,  69, 142,   8,  99,  37, 240,  21,  10,  23, 190,   6, 148,
+                247, 120, 234,  75,   0,  26, 197,  62,  94, 252, 219, 203, 117,  35,  11,  32,
+                57,  177,  33,  88, 237, 149,  56,  87, 174,  20, 125, 136, 171, 168,  68, 175,
+                74,  165,  71, 134, 139,  48,  27, 166,  77, 146, 158, 231,  83, 111, 229, 122,
+                60,  211, 133, 230, 220, 105,  92,  41,  55,  46, 245,  40, 244, 102, 143,  54,
+                65,   25,  63, 161,   1, 216,  80,  73, 209,  76, 132, 187, 208,  89,  18, 169,
+                200, 196, 135, 130, 116, 188, 159,  86, 164, 100, 109, 198, 173, 186,   3,  64,
+                52,  217, 226, 250, 124, 123,   5, 202,  38, 147, 118, 126, 255,  82,  85, 212,
+                207, 206,  59, 227,  47,  16,  58,  17, 182, 189,  28,  42, 223, 183, 170, 213,
+                119, 248, 152,   2,  44, 154, 163,  70, 221, 153, 101, 155, 167,  43, 172,   9,
+                129,  22,  39, 253,  19,  98, 108, 110,  79, 113, 224, 232, 178, 185, 112, 104,
+                218, 246,  97, 228, 251,  34, 242, 193, 238, 210, 144,  12, 191, 179, 162, 241,
+                81,   51, 145, 235, 249,  14, 239, 107,  49, 192, 214,  31, 181, 199, 106, 157,
+                184,  84, 204, 176, 115, 121,  50,  45, 127,   4, 150, 254, 138, 236, 205,  93,
+                222, 114,  67,  29,  24,  72, 243, 141, 128, 195,  78,  66, 215,  61, 156, 180
+            ]
+        ) # Ken Perlin's original permutation table
         self._gradients = np.array(list(zip(np.zeros(255), np.zeros(255))))
-        print(self._permutations)
-        print(self._gradients)
+        # print(self._permutations)
+        # print(self._gradients)
         random.seed(seed)
-        for p in self._permutations:
-            p = random.randint(0,255)
+        # predefined randomized gradients
         for g in self._gradients:
             g[0], g[1] = random.randint(-127, 127), random.randint(-127, 127)
             length = math.sqrt(g[0]**2 + g[1] ** 2)
             g[0], g[1] = g[0] / length, g[1] / length
-        print(self._permutations)
-        print(self._gradients)
-    def random_vector_2d_fast(self,x,y) - tuple[int,int]:
+        # print(self._permutations)
+        #  print(self._gradients)
+
+    def lerp(self, t, a, b ): # linear interpolation function
+    
+        return a + t*( b - a )
+    
+    
+    def s_curve(self, t ): # shaped blending function
+         return t*t*(3-2*t)
+    
+
+    def random_vector_2d_fast(self,x,y) -> tuple[int,int]: # A Pseudorandom function using the predefined permutations originating from the seed
         i = self._permutations[x & 255]
         j = self._permutations[(y+i) & 255]
+        print(tuple(self._gradients[int(j)]))
         return tuple(self._gradients[int(j)])
-    def calc_coord(self, coordinate: tuple[int,int]):
-        ws = {} # values to weight
-        # sample vector is coordinate
-        x = coordinate[0]
-        y = coordinate[1]
-        x1 = math.floor(x) - 1
-        x2 = math.ceil(x) + 1
-        y1 = math.floor(y) - 1
-        y2 = math.ceil(y) + 1
-        for h in [(x1,y1), (x1, y2), (x2, y1), (x1, y2)]:
-            g = self.random_vector_2d_fast(h[0], h[1])
-            v = (x - g[0], y - g[1])
-            ws[h] = g[0] * v[0], g[1], v[1]
-    def generate_chunk(self, chunk_coordinates: tuple[int, int]): # chunks are 16x16 units
-        cc = chunk_coordinates
-        x1 = cc[0] * 16
-        y1 = cc[1] * 16
-        x2 = cc[0] * 16 + 16
-        y2 = cc[1] * 16 + 16
-        for coord
+
+    def perlin_noise2D(self, x: int, y: int) -> float: # perlin noise function 
+
+
+        g = self.random_vector_2d_fast(x, y)
+        v = (x - g[0], y - g[1])
+        print (g[0] + v[0])
+        return g[0] + v[0]
+
+    def smooth_noise2D(self, x: float, y: float): # interpolated perlin noise function
+    
+        #  xi,yi; //integer component
+        #  xf,yf; //floating point component
+        #  xs,ys; //s-curve function results
+        #  l00, l01, l10, l11; //uninterpolated values
+        #  l0, l1; //partially interpolated values
+        xi = int(x)
+        xf = x - float(xi)
+        xs = self.s_curve(xf)
+        yi = int(y)
+        yf = y - float(yi)
+        ys = self.s_curve(yf)
+        l00 = self.perlin_noise2D( xi , yi )
+        l01 = self.perlin_noise2D( xi+1, yi )
+        l10 = self.perlin_noise2D( xi , yi+1 )
+        l11 = self.perlin_noise2D( xi+1, yi+1 )
+        l0 = self.lerp( xs, l00, l01 ) # interpolate across the x axis using the s curve
+        l1 = self.lerp( xs, l10, l11 )
+        return self.lerp( ys, l0, l1 ) - x# interpolate across the y axis using the s curve
+        
+        
+
+    
+    # def generate_chunk(self, chunk_coordinates)
+
+
+
 
 if __name__ == "__main__":
-    tgen = Terrain_Generator(1337)
+    import matplotlib
+    COLOR_BANDS = {
+        0: (0,0,0), # deep ocean
+        60: (10, 30, 210), # shallow water
+        61: (190, 180, 10), # beach
+        65: (190, 180, 10), # beach
+        69: (50, 200, 20), # Grass
+        150: (50, 200, 20), # Grass
+        200: (100, 100, 100),
+        255: (150, 150, 150)
+
+    }
+
+    # colormap = matplotlib.
+    options = {
+        "cells": [
+            [1024, 255]
+        ],
+    }
+    random.seed()
+    seed = random.randint(0,122)
+    print(seed)
+    tgen = Terrain_Generator(seed, options)
+    print(tgen.smooth_noise2D(12.1, 20.1))
