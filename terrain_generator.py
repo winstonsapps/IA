@@ -2,8 +2,21 @@ import numpy as np
 import random
 import math
 
-class Terrain_Generator:
-    def __init__(self, seed, world_gen_options: dict):
+"""
+Blocks:
+1: grass
+2: Dirt
+3. Stone
+4. Water
+"""
+
+class TerrainGenerator:
+    """
+    Terrain generator class
+    Doesn't generate meshes but makes noise
+    Use block_height to get the block height at a certain x, z coordinate, returns a float between (0-255)
+    """
+    def __init__(self, seed, world_gen_options: dict): #TODO: add world gen options
         self._seed = seed
         self._permutations = np.array(
             [
@@ -25,7 +38,7 @@ class Terrain_Generator:
                 222, 114,  67,  29,  24,  72, 243, 141, 128, 195,  78,  66, 215,  61, 156, 180
             ]
         ) # Ken Perlin's original permutation table
-        self._gradients = np.array(list(zip(np.zeros(255), np.zeros(255))))
+        self._gradients = np.array(list(zip(np.zeros(256), np.zeros(256))))
         # print(self._permutations)
         # print(self._gradients)
         random.seed(seed)
@@ -49,7 +62,7 @@ class Terrain_Generator:
     def random_vector_2d_fast(self,x,y) -> tuple[int,int]: # A Pseudorandom function using the predefined permutations originating from the seed
         i = self._permutations[x & 255]
         j = self._permutations[(y+i) & 255]
-        print(tuple(self._gradients[int(j)]))
+        # print(tuple(self._gradients[int(j)]))
         return tuple(self._gradients[int(j)])
 
     def perlin_noise2D(self, x: int, y: int) -> float: # perlin noise function 
@@ -57,8 +70,8 @@ class Terrain_Generator:
 
         g = self.random_vector_2d_fast(x, y)
         v = (x - g[0], y - g[1])
-        print (g[0] + v[0])
-        return g[0] + v[0]
+        #  print (g[0] * v[0])
+        return g[0] * v[0] + g[1] * v[1]
 
     def smooth_noise2D(self, x: float, y: float): # interpolated perlin noise function
     
@@ -77,11 +90,23 @@ class Terrain_Generator:
         l01 = self.perlin_noise2D( xi+1, yi )
         l10 = self.perlin_noise2D( xi , yi+1 )
         l11 = self.perlin_noise2D( xi+1, yi+1 )
-        l0 = self.lerp( xs, l00, l01 ) # interpolate across the x axis using the s curve
-        l1 = self.lerp( xs, l10, l11 )
-        return self.lerp( ys, l0, l1 ) - x# interpolate across the y axis using the s curve
+        l0 = l00*l01 + l10*l11 # calculate dot product
+
+        l0 = l00*l01 + l10*l11 # calculate dot product
         
+    def block_height(self, x: np.ndarray, y: np.ndarray):
+        h = (np.sin(x/24)*np.sin(y/24)+1)/2*256 # Takes in an array
+        return h.astype(np.uint8)
+    def generate_chunk_heights(self,x,y):
+        # Create a local coordinate grid at (x,y)
+        x_coords, y_coords = np.indices((16,16))
+        world_x_coords = x_coords + 16*x
+        world_y_coords = y_coords + 16*y
+        heights = self.block_height(world_x_coords, world_y_coords)
+        print(heights)
         
+        return heights.astype(np.uint8)
+
 
     
     # def generate_chunk(self, chunk_coordinates)
@@ -89,21 +114,38 @@ class Terrain_Generator:
 
 
 
-if __name__ == "__main__":
-    import matplotlib
-    COLOR_BANDS = {
-        0: (0,0,0), # deep ocean
-        60: (10, 30, 210), # shallow water
-        61: (190, 180, 10), # beach
-        65: (190, 180, 10), # beach
-        69: (50, 200, 20), # Grass
-        150: (50, 200, 20), # Grass
-        200: (100, 100, 100),
-        255: (150, 150, 150)
+if __name__ == "__main__": # debug
+    from PIL import Image, ImageDraw
+    # COLOR_BANDS = {
+    #     0: (0,0,0), # deep ocean
+    #     60: (10min(255, max(0, (self.smooth_noise2D((x+0.5)/10.2, (y+0.5)/10.2)) / 1000)), 30, 210), # shallow water
+    #     61: (190, 180, 10), # beach
+    #     65: (190, 180, 10), # beach
+    #     69: (50, 200, 20), # Grass
+    #     150: (50, 200, 20), # Grass
+    #     200: (100, 100, 100),
+    #     255: (150, 150, 150)
 
-    }
+    # }
 
-    # colormap = matplotlib.
+    # # COLOR_BANDS = [
+    # #            [0, (0,0,100)], # deep ocean
+    # #           [60, (10, 30, 210)], # shallow water
+    # #           [61, (190, 180, 10)], # beach
+    # #           [65, (190, 180, 10)], # beach
+    # #           [69, (50, 200, 20)], # Grass
+    # #          [150, (50, 200, 20)], # Grass
+    # #          [200, (100, 100, 100)],
+    # #          [255, (150, 150, 150)]
+    
+    # #     ]
+    # # colours = []
+    # yvals = list(COLOR_BANDS.values())
+    # for y in range(255):
+    #     closest_yval_index = min([abs(abs(yvals[i])-y) for i in len(yvals)])
+
+    #     print(y, yvals[closest_yval_index])
+
     options = {
         "cells": [
             [1024, 255]
@@ -112,5 +154,17 @@ if __name__ == "__main__":
     random.seed()
     seed = random.randint(0,122)
     print(seed)
-    tgen = Terrain_Generator(seed, options)
-    print(tgen.smooth_noise2D(12.1, 20.1))
+    tgen = TerrainGenerator(seed, options)
+    # print(tgen.smooth_noise2D(12.1, 20.1))
+    # print(tgen.smooth_noise2D(14.1, 20.1))
+    im = Image.new("L", (255, 255))
+    # d = ImageDraw.Draw(im, "L")
+    for x in range(16):
+        for y in range(16):
+            
+            chunk = tgen.generate_chunk_heights(x,y)
+            chunk_image = Image.fromarray(chunk, "L")
+            offset = (16*x, 16*y)
+            im.paste(chunk_image, offset)
+
+    im.show()
