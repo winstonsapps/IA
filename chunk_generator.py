@@ -7,12 +7,11 @@ class ChunkGenerator():
     """
     
     how it'll work
-    define a chunk grid as a 16x16 grid
-    define vertex order (always ccw around top)
-    np grid
-        [
-            (0, tgen..height, 0)
-        ]
-    
+    define a chunk grid as a [256,16,16 array]
+    for each block that isnt air (>0)
+    generate a vertices array
+    edges array
+    faces array
+    with uv coords from tmap (256x256 grid)
     """
     def __init__(self, seed):

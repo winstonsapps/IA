@@ -2,6 +2,10 @@ import numpy as np
 import random
 import math
 
+if __name__ == "__main__":
+    large_width = 400
+    np.set_printoptions(linewidth=large_width)
+
 """
 Blocks:
 1: grass
@@ -103,18 +107,35 @@ class TerrainGenerator:
         world_x_coords = x_coords + 16*x
         world_y_coords = y_coords + 16*y
         heights = self.block_height(world_x_coords, world_y_coords)
-        print(heights)
+        #print(heights)
         
         return heights.astype(np.uint8)
 
 
     
-    # def generate_chunk(self, chunk_coordinates)
+    def generate_chunk(self, chunk_x, chunk_z):
+        """generates a np array shape [256, 16 16] at given chunk coords
+        
+        0 = air
+        1 = stone
+        ... More to come...
+        
+        """
+        chunk_heights = self.generate_chunk_heights(chunk_x, chunk_z)
+        increasing_subtraction = np.arange(256, dtype=np.int16)[:,None,None] # Shapes into 3d
+        slices = chunk_heights[None,:,:] - increasing_subtraction # it is the chunk height at every x,z cord at each Y cord
+        print(slices[0])
+        print(slices[1])
+        print(slices[255])
+        slices = np.astype((slices>0), np.uint8)
+        print(slices[0])
+        print(slices[150])
 
 
 
 
 if __name__ == "__main__": # debug
+    
     from PIL import Image, ImageDraw
     # COLOR_BANDS = {
     #     0: (0,0,0), # deep ocean
@@ -153,8 +174,9 @@ if __name__ == "__main__": # debug
     }
     random.seed()
     seed = random.randint(0,122)
-    print(seed)
+    #print(seed)
     tgen = TerrainGenerator(seed, options)
+    tgen.generate_chunk(0,0)
     # print(tgen.smooth_noise2D(12.1, 20.1))
     # print(tgen.smooth_noise2D(14.1, 20.1))
     im = Image.new("L", (255, 255))
