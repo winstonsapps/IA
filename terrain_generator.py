@@ -112,7 +112,12 @@ class TerrainGenerator:
         return heights.astype(np.uint8)
 
 
-    
+    def generate_empty_chunk(self, chunk_x, chunk_z):
+        """same as generate chunk but just one block of stone..."""
+        slices = np.zeros((256,16,16), dtype=np.uint8)
+        slices[0][0][0] = 1
+        print(np.shape(slices))
+        return slices
     def generate_chunk(self, chunk_x, chunk_z):
         """generates a np array shape [256, 16 16] at given chunk coords
         
@@ -124,13 +129,10 @@ class TerrainGenerator:
         chunk_heights = self.generate_chunk_heights(chunk_x, chunk_z)
         increasing_subtraction = np.arange(256, dtype=np.int16)[:,None,None] # Shapes into 3d
         slices = chunk_heights[None,:,:] - increasing_subtraction # it is the chunk height at every x,z cord at each Y cord
-        print(slices[0])
-        print(slices[1])
-        print(slices[255])
-        slices = np.astype((slices>0), np.uint8)
-        print(slices[0])
-        print(slices[150])
 
+        slices = np.astype((slices>0), np.uint8)
+        print(np.shape(slices))
+        return slices
 
 
 
